@@ -1,0 +1,70 @@
+<!-- Widget Configuration -->
+<link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+<script>
+    window.ChatWidgetConfig = {
+        webhook: {
+            url: 'https://n8n.customcx.com/webhook/zoho-lead-upsert',
+            route: 'general',
+            zohoUrl: 'https://n8n.customcx.com/webhook/zoho-lead-upsert'  // Paste your Zoho upsert webhook URL here
+        },
+        branding: {
+            logo: 'YOUR_LOGO_URL',
+            name: 'Your Company Name',
+            welcomeText: 'Hi 👋, how can we help?',
+            responseTimeText: 'We typically respond right away'
+        },
+        style: {
+            primaryColor: '#854fff',
+            secondaryColor: '#6b3fd4',
+            position: 'right', // 'left' or 'right'
+            backgroundColor: '#ffffff',
+            fontColor: '#333333',
+          
+        }
+    };
+</script>
+
+<!-- Widget Script -->
+<script>
+    // Ensure DOM is ready before injecting the widget so appendChild targets exist
+    (function () {
+        function loadWidget() {
+            try {
+                // Create a root container if the widget expects one
+                var rootId = 'chat-widget-root';
+                var root = document.getElementById(rootId);
+                if (!root) {
+                    root = document.createElement('div');
+                    root.id = rootId;
+                    document.body.appendChild(root);
+                }
+
+                // Dynamically load the remote widget script
+                var s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/gh/funtastic418/chat-widget@main/chat-widget.js';
+                s.async = true;
+                s.onload = function () {
+                    // Optionally initialize the widget if it exposes a global init function
+                    if (window.ChatWidget && typeof window.ChatWidget.init === 'function') {
+                        window.ChatWidget.init(window.ChatWidgetConfig || {});
+                    }
+                };
+                s.onerror = function (e) {
+                    console.error('Failed to load chat widget script', e);
+                };
+                document.body.appendChild(s);
+            } catch (err) {
+                console.error('Error while setting up chat widget:', err);
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadWidget);
+        } else {
+            loadWidget();
+        }
+    })();
+</script>
+
+
+
