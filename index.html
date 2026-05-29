@@ -3,7 +3,7 @@
 <script>
     window.ChatWidgetConfig = {
         webhook: {
-            url: 'https://n8n.customcx.com/webhook/zoho-lead-upsert',
+            url: '',
             route: 'general',
             zohoUrl: 'https://n8n.customcx.com/webhook/zoho-lead-upsert'  // Paste your Zoho upsert webhook URL here
         },
@@ -28,40 +28,103 @@
 <script>
     // Ensure DOM is ready before injecting the widget so appendChild targets exist
     (function () {
-        function loadWidget() {
-            try {
-                // Create a root container if the widget expects one
-                var rootId = 'chat-widget-root';
+        // Robust loader with retries and fallback UI
+        var ChatWidgetLoader = (function () {
+            var maxRetries = 3;
+            var baseDelay = 500; // ms
+            var src = 'https://cdn.jsdelivr.net/gh/funtastic418/chat-widget@main/chat-widget.js';
+            var rootId = 'chat-widget-root';
+            var loadingFlag = '__chat_widget_loading__';
+
+            function ensureRoot() {
                 var root = document.getElementById(rootId);
                 if (!root) {
                     root = document.createElement('div');
                     root.id = rootId;
+                    // Minimal styling so fallback is visible if script fails
+                    root.style.position = 'fixed';
+                    root.style.bottom = '20px';
+                    root.style.right = '20px';
+                    root.style.zIndex = 100000;
                     document.body.appendChild(root);
                 }
+                return root;
+            }
 
-                // Dynamically load the remote widget script
-                var s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/gh/funtastic418/chat-widget@main/chat-widget.js';
-                s.async = true;
-                s.onload = function () {
-                    // Optionally initialize the widget if it exposes a global init function
-                    if (window.ChatWidget && typeof window.ChatWidget.init === 'function') {
-                        window.ChatWidget.init(window.ChatWidgetConfig || {});
-                    }
-                };
-                s.onerror = function (e) {
-                    console.error('Failed to load chat widget script', e);
-                };
-                document.body.appendChild(s);
+            function showFallback(root, message) {
+                // Avoid duplicating fallback
+                if (root.querySelector('.chat-widget-fallback')) return;
+                var f = document.createElement('div');
+                f.className = 'chat-widget-fallback';
+                f.textContent = message || 'Chat unavailable';
+                f.style.padding = '10px 14px';
+                f.style.background = '#fff';
+                f.style.color = '#333';
+                f.style.border = '1px solid rgba(0,0,0,0.08)';
+                f.style.borderRadius = '8px';
+                f.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)';
+                root.appendChild(f);
+            }
+
+            function loadOnce(retriesLeft) {
+                // Prevent duplicate loaders
+                if (window[loadingFlag]) return;
+                window[loadingFlag] = true;
+
+                var root = ensureRoot();
+
+                function attempt() {
+                    var s = document.createElement('script');
+                    s.src = src + (src.indexOf('?') === -1 ? '?_=' + Date.now() : '&_=' + Date.now());
+                    s.async = true;
+                    var cleaned = false;
+                    s.onload = function () {
+                        if (cleaned) return;
+                        cleaned = true;
+                        try {
+                            if (window.ChatWidget && typeof window.ChatWidget.init === 'function') {
+                                window.ChatWidget.init(window.ChatWidgetConfig || {});
+                            }
+                        } catch (e) {
+                            console.error('Chat widget init failed', e);
+                            showFallback(root, 'Chat init error');
+                        }
+                    };
+                    s.onerror = function (e) {
+                        if (cleaned) return;
+                        cleaned = true;
+                        console.warn('Chat widget load failed, retries left:', retriesLeft, e);
+                        if (retriesLeft > 0) {
+                            var delay = baseDelay * Math.pow(2, maxRetries - retriesLeft);
+                            setTimeout(function () { loadOnce(retriesLeft - 1); }, delay);
+                        } else {
+                            showFallback(root, 'Chat unavailable');
+                        }
+                    };
+                    // Append to body (safe after DOM ready)
+                    document.body.appendChild(s);
+                }
+
+                attempt();
+            }
+
+            return {
+                start: function () { loadOnce(maxRetries); }
+            };
+        })();
+
+        function startLoader() {
+            try {
+                ChatWidgetLoader.start();
             } catch (err) {
-                console.error('Error while setting up chat widget:', err);
+                console.error('Failed to start ChatWidgetLoader', err);
             }
         }
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', loadWidget);
+            document.addEventListener('DOMContentLoaded', startLoader);
         } else {
-            loadWidget();
+            startLoader();
         }
     })();
 </script>
