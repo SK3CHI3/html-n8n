@@ -3,35 +3,32 @@
 <script>
     window.ChatWidgetConfig = {
         webhook: {
-            url: 'https://n8n.customcx.com/webhook/zoho-lead-upsert',
+            url: 'https://n8n.customcx.com/webhook/4091fa09-fb9a-4039-9411-7104d213f601',
             route: 'general',
-            zohoUrl: 'https://n8n.customcx.com/webhook/zoho-lead-upsert'  // Paste your Zoho upsert webhook URL here
+            zohoUrl: 'https://n8n.customcx.com/webhook/zoho-lead-upsert'
         },
         branding: {
-            logo: 'YOUR_LOGO_URL',
-            name: 'Your Company Name',
+            logo: 'https://customcx.com/favicon.ico',
+            name: 'CustomCX Hotel',
             welcomeText: 'Hi 👋, how can we help?',
             responseTimeText: 'We typically respond right away'
         },
         style: {
             primaryColor: '#854fff',
             secondaryColor: '#6b3fd4',
-            position: 'right', // 'left' or 'right'
+            position: 'right',
             backgroundColor: '#ffffff',
-            fontColor: '#333333',
-          
+            fontColor: '#333333'
         }
     };
 </script>
 
 <!-- Widget Script -->
 <script>
-    // Ensure DOM is ready before injecting the widget so appendChild targets exist
     (function () {
-        // Robust loader with retries and fallback UI
         var ChatWidgetLoader = (function () {
             var maxRetries = 3;
-            var baseDelay = 500; // ms
+            var baseDelay = 500;
             var src = 'https://cdn.jsdelivr.net/gh/funtastic418/chat-widget@main/chat-widget.js';
             var rootId = 'chat-widget-root';
             var loadingFlag = '__chat_widget_loading__';
@@ -41,7 +38,6 @@
                 if (!root) {
                     root = document.createElement('div');
                     root.id = rootId;
-                    // Minimal styling so fallback is visible if script fails
                     root.style.position = 'fixed';
                     root.style.bottom = '20px';
                     root.style.right = '20px';
@@ -52,7 +48,6 @@
             }
 
             function showFallback(root, message) {
-                // Avoid duplicating fallback
                 if (root.querySelector('.chat-widget-fallback')) return;
                 var f = document.createElement('div');
                 f.className = 'chat-widget-fallback';
@@ -67,7 +62,6 @@
             }
 
             function loadOnce(retriesLeft) {
-                // Prevent duplicate loaders
                 if (window[loadingFlag]) return;
                 window[loadingFlag] = true;
 
@@ -101,7 +95,6 @@
                             showFallback(root, 'Chat unavailable');
                         }
                     };
-                    // Append to body (safe after DOM ready)
                     document.body.appendChild(s);
                 }
 
@@ -130,4 +123,4 @@
 </script>
 
 
-
+ 
