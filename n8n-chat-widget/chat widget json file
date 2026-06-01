@@ -1,0 +1,603 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Upload your data to test RAG",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Upload your file(s)",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf, .csv",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        256
+      ],
+      "id": "f7a656ec-83fc-4ed2-a089-57a9def662b7",
+      "name": "Upload your file here",
+      "webhookId": "82848bc4-5ea2-4e5a-8bb6-3c09b94a8c5d"
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        464
+      ],
+      "id": "94aecac0-03f9-4915-932b-d14a2576607b",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "value": "vector_store_key",
+          "mode": "list",
+          "cachedResultName": "vector_store_key"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.2,
+      "position": [
+        -32,
+        272
+      ],
+      "id": "bf50a11f-ca6a-4e04-a6d2-42fee272b260",
+      "name": "Insert Data to Store"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "knowledge_base",
+        "toolDescription": "Use this knowledge base to answer questions from the user",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        },
+        "useReranker": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        384
+      ],
+      "id": "09c0db62-5413-440e-8c13-fb6bb66d9b6a",
+      "name": "Query Data Tool"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.cleanedMessage }} ",
+        "options": {
+          "systemMessage": "You are a professional Resturant reservation Agent, You Indentify as \"Betty\" not just an AI. You hanlde enquiries, bookings, answer FAQ, and relevance assitanc. If an Operation will take some time, please inform the client to wait. You can not handle refunds. You are aware of the menu, offers, dishes, rest rooms, opening hours and more for CustomCX hotel. Use *\"store-memory\" tool to store the user input/feedback. Map the right details to the right column/row you. Call the \"Get-memory\" tool to retrieve past interactions before responding. both the \"store-memory\" and \"get-memory\" are supabase tools use them efficiently store the leads. \n#rule1: You must always call the \"store-memory\" tool to save any customer insight.\n\nWhat to store in memory?\nwhat the user is looking for.\ntheir objective, challenge, clarity,\nwhat dish,menu, or service they are intrested in. \nKey insights about their needs.\n\n#Rule2: Before generating any response always retrieve relevant memories from  \"get-memory\" inorder to stay relevant and Personalized.\n\nUse \"Send-email\" tool to send Verification details, Menu, Clarification and follow up. Verify the customers email before sending them an email. You should download the Menu from the Google drive \"Download-Menu\" tool. and attach it as part of the email. The client email and name is usually provided at the begining of the conversation. But you can counter check before sending them an email to be sure it is a valid adress. Please inform them once you have sent the adress. \n\n#Use \"Query Data Tool\" to retrive answers for the general question. Everydetail is provided there. Scan the entire knowledge base before returning the answer. \n\n#CustomCX Contact details are +254768322488 and info@CustomCX. \n\n#Here is General Menu\nChapati/chapo and beans =KES 250\nBeef/nyama and ugali = KES 750/-\nMixed tea and cake =Kes 300/-\nPlatters chiken Platter: (Chicken, soup, Salad, Rice/pilau, Chapati/chapo, 4Suasage) KES 3500/-\nBeef platter: (Beef, soup, Ugali, Veges, Rice/Pilau, Fries, 3 Glasses of juice) KES 4500/-\n\nswimming = 500/- adults 300/- children \nSwimming costume (Swimsuits) available for hire from 300/-\n\n*Priority Use the knowledge base to get more detailed answers or else let the customer visit https://customcx.com/ \n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -128
+      ],
+      "id": "579aed76-9644-42d1-ac13-7369059ff1c2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "mode": "webhook",
+        "options": {
+          "allowedOrigins": "*",
+          "responseMode": "responseNode"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -144,
+        -48
+      ],
+      "id": "9c30de61-935a-471f-ae88-ec5f67beeefc",
+      "name": "When chat message received",
+      "webhookId": "4091fa09-fb9a-4039-9411-7104d213f601"
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        912,
+        528
+      ],
+      "id": "ada2c538-305c-4388-81fb-694fb4fbc6d5",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "8vBIpENmZHAIEyhR",
+          "name": "CohereApi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        48
+      ],
+      "id": "66085fcd-5c53-4f26-a788-c6070dd552b1",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "poM6Ornhzse7CD7q",
+          "name": "Google Gemini(PaLM) Api account test"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When chat message received').item.json.sessionId }}",
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1248,
+        80
+      ],
+      "id": "aae1bcf5-8f6e-4519-8372-3a5c7e078cca",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        528
+      ],
+      "id": "15af2845-8798-46c3-94c2-317e34ee64dd",
+      "name": "Reranker Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "py64UlQcHZeNlC9p",
+          "name": "CohereApi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "CustomCX Hotel",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "memory",
+              "fieldValue": "={{ $fromAI (\"memory\", \"store new memory based on user's input and be specific as you can\") }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $fromAI (\"email\", \"If the user input/response is their email, you save it here\") }}"
+            },
+            {
+              "fieldId": "Name",
+              "fieldValue": "={{ $fromAI (\"name\", \"If the user input/response is their name, you save it here\") }}"
+            },
+            {
+              "fieldId": "sessionID",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        160
+      ],
+      "id": "e8088d9e-d7e4-43b4-bb17-cc7c3bd2dfc0",
+      "name": "store-memory",
+      "credentials": {
+        "supabaseApi": {
+          "id": "PgYRVXLr3BAgRW34",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "CustomCX Hotel",
+        "returnAll": true,
+        "filterType": "none"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        176
+      ],
+      "id": "4abbe6a1-f046-45b2-bf22-088cbb329911",
+      "name": "Get-memory",
+      "credentials": {
+        "supabaseApi": {
+          "id": "PgYRVXLr3BAgRW34",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "info@customcx.com",
+        "toEmail": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To_Email', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "emailFormat": "text",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Text', ``, 'string') }}",
+        "options": {
+          "appendAttribution": false,
+          "attachments": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Attachments', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.emailSendTool",
+      "typeVersion": 2.1,
+      "position": [
+        1520,
+        240
+      ],
+      "id": "e3daa5c5-9c30-48c1-b718-fe528cae167d",
+      "name": "Send-email",
+      "webhookId": "18949e7d-3ad6-4845-8ba1-b6a95b32c7a0",
+      "credentials": {
+        "smtp": {
+          "id": "aVNkYHrGCmSuOOdm",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "https://drive.google.com/file/d/1WboEWV7BH8Kykwdh_z1Z8ftO-j9Zjlir/view?usp=drive_link",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTool",
+      "typeVersion": 3,
+      "position": [
+        1408,
+        224
+      ],
+      "id": "48f0be42-c89d-4200-a6a1-79a2ddca3731",
+      "name": "Download Menu",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "eDpP3P4PjLffHA9W",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5b40f553-15a0-459d-9594-096a5d3cced7",
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        304,
+        -80
+      ],
+      "id": "969cf601-fd6e-4a71-a21b-5a450ebd4644",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"output\": \"please provide your email and name\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        528,
+        112
+      ],
+      "id": "e540ebee-8a36-43c0-8e38-898c4b566dbe",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1552,
+        -112
+      ],
+      "id": "f6b5ce81-b0a3-42f8-8193-c372065115ed",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e7477f13-656d-4e5c-a0ad-86d200ca96c8",
+              "name": "chatInput",
+              "value": "={{ $json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "fabab0bc-cf16-4c41-b154-966aa921b1d7",
+              "name": "Email",
+              "value": "={{ $json.metadata.userName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        -112
+      ],
+      "id": "7acde89c-4c0f-41b4-b12a-63834e2f39c3",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if this is a user registration message\nif ($json.metadata && $json.metadata.isUserInfo) {\n  // For registration messages, pass through without processing\n  return {\n    isRegistration: true,\n    userInfo: {\n      name: $json.metadata?.userName || '',\n      email: $json.metadata?.userId || ''\n    },\n    originalData: $json\n  };\n}\n\n// For regular chat messages\nconst originalData = $('When chat message received').item.json;\nreturn {\n  isRegistration: false,\n  cleanedMessage: $json.chatInput || $json.message || '',\n  userInfo: {\n    name: originalData.metadata?.userName || '',\n    email: originalData.metadata?.userId || ''\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        -112
+      ],
+      "id": "aa69f711-bcdc-43b1-88ef-6fb9ee901772",
+      "name": "Code"
+    }
+  ],
+  "connections": {
+    "Upload your file here": {
+      "main": [
+        [
+          {
+            "node": "Insert Data to Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert Data to Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Data Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert Data to Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Query Data Tool",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Query Data Tool",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "store-memory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get-memory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send-email": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Menu": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateId": "rag-starter-template",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8f351f8f18f69574a46094a253f36ef0804528a7fc6d1eee81ee60e356860359"
+  }
+}
