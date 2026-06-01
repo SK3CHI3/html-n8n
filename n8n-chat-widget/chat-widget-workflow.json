@@ -1,0 +1,680 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Upload your data to test RAG",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Upload your file(s)",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf, .csv",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [-1088, 576],
+      "id": "5bbcfae6-f599-48da-a003-4df5ac8b4685",
+      "name": "Upload your file here",
+      "webhookId": "296456ad-2bbf-4c87-bdab-48a37475d76c"
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [-528, 704],
+      "id": "96f53a18-0296-402c-8151-968e5cdd8010",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "value": "vector_store_key",
+          "mode": "list",
+          "cachedResultName": "vector_store_key"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.2,
+      "position": [-592, 576],
+      "id": "56127978-4cad-482c-bd82-dff31352bd59",
+      "name": "Insert Data to Store"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "knowledge_base",
+        "toolDescription": "Use this knowledge base to answer questions from the user",
+        "memoryKey": {
+          "__rl": true,
+          "mode": "list",
+          "value": "vector_store_key"
+        },
+        "useReranker": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.2,
+      "position": [32, 512],
+      "id": "7d8b67e3-0cf3-420d-94fd-0a1071749552",
+      "name": "Query Data Tool"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Customer Name: {{ $json.userInfo.name }}\nCustomer Email: {{ $json.userInfo.email }}\nMessage: {{ $json.cleanedMessage }}",
+        "options": {
+          "systemMessage": "You are a professional Restaurant reservation Agent. You identify as \"Betty\" not just an AI. You handle enquiries, bookings, answer FAQ, and provide relevant assistance.\n\nThe customer's name and email are provided at the start of every message. Always greet them by their first name on the first message. Be warm and personal throughout the conversation.\n\nIf an operation will take some time, please inform the client to wait. You cannot handle refunds.\n\nYou are aware of the menu, offers, dishes, rest rooms, opening hours and more for CustomCX hotel.\n\n#RULE 1 - MEMORY STORAGE:\nAlways call the \"store-memory\" tool to save any customer insight including:\n- What the user is looking for\n- Their objective, challenge, or need\n- What dish, menu, or service they are interested in\n- Their name and email\n- Key insights about their needs\n\n#RULE 2 - MEMORY RETRIEVAL:\nBefore generating any response always retrieve relevant memories from \"get-memory\" in order to stay relevant and personalized.\n\n#RULE 3 - EMAIL:\nUse the \"Send-email\" tool to send verification details, Menu, clarification and follow up. Verify the customer's email before sending. Download the Menu from Google Drive using the \"Download-Menu\" tool and attach it as part of the email. Inform the customer once you have sent the email.\n\n#RULE 4 - KNOWLEDGE BASE:\nUse the \"Query Data Tool\" to retrieve answers for general questions. Scan the entire knowledge base before returning the answer.\n\n#CustomCX Contact details: +254768322488 and info@CustomCX.com\n\n#General Menu:\nChapati/chapo and beans = KES 250\nBeef/nyama and ugali = KES 750\nMixed tea and cake = KES 300\nChicken Platter: (Chicken, soup, Salad, Rice/pilau, Chapati, 4 Sausage) = KES 3500\nBeef Platter: (Beef, soup, Ugali, Veges, Rice/Pilau, Fries, 3 Glasses of juice) = KES 4500\nSwimming = KES 500 adults / KES 300 children\nSwimming costume hire from KES 300\n\nFor more details direct customers to https://customcx.com/"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [-48, -192],
+      "id": "d3f5f605-bcf1-4326-8c2d-535a3ff23727",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "mode": "webhook",
+        "options": {
+          "allowedOrigins": "*",
+          "responseMode": "responseNode"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [-1104, 80],
+      "id": "8f1401c3-74ef-4a9c-918c-aae884985b53",
+      "name": "When chat message received",
+      "webhookId": "4091fa09-fb9a-4039-9411-7104d213f601"
+    },
+    {
+      "parameters": {
+        "modelName": "embed-multilingual-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [32, 704],
+      "id": "b0831f3d-0739-4c68-a249-4f17e13f27cb",
+      "name": "Embeddings Cohere"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [-48, 272],
+      "id": "eafc370b-9b97-4aad-bf20-fc66d683f0c9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "N721zMHSjPQ0D97a",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When chat message received').item.json.sessionId }}",
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [48, 272],
+      "id": "9cb371a2-89da-4f25-b51f-55e1e5e3fcf5",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.rerankerCohere",
+      "typeVersion": 1,
+      "position": [192, 704],
+      "id": "2c87e29b-f104-4d12-af61-948ef4626fec",
+      "name": "Reranker Cohere"
+    },
+    {
+      "parameters": {
+        "tableId": "CustomCX Hotel",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "memory",
+              "fieldValue": "={{ $fromAI(\"memory\", \"store new memory based on user's input and be specific as you can\") }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $fromAI(\"email\", \"If the user input/response is their email, you save it here\") }}"
+            },
+            {
+              "fieldId": "Name",
+              "fieldValue": "={{ $fromAI(\"name\", \"If the user input/response is their name, you save it here\") }}"
+            },
+            {
+              "fieldId": "sessionID",
+              "fieldValue": "={{ $fromAI('sessionID', 'the current session id', 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [784, -48],
+      "id": "4aa10804-8b2f-4894-afc4-84898f0ed5fe",
+      "name": "store-memory"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "CustomCX Hotel",
+        "returnAll": true,
+        "filterType": "none"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [800, 176],
+      "id": "f6882c18-68cb-4c76-bcbf-9c7008f072d8",
+      "name": "Get-memory"
+    },
+    {
+      "parameters": {
+        "fromEmail": "info@customcx.com",
+        "toEmail": "={{ $fromAI('To_Email', '', 'string') }}",
+        "subject": "={{ $fromAI('Subject', '', 'string') }}",
+        "emailFormat": "text",
+        "text": "={{ $fromAI('Text', '', 'string') }}",
+        "options": {
+          "appendAttribution": false,
+          "attachments": "={{ $fromAI('Attachments', '', 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.emailSendTool",
+      "typeVersion": 2.1,
+      "position": [800, 432],
+      "id": "66796b36-09f8-4595-ba98-90ed326c8c11",
+      "name": "Send-email",
+      "webhookId": "18949e7d-3ad6-4845-8ba1-b6a95b32c7a0"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "https://drive.google.com/file/d/1WboEWV7BH8Kykwdh_z1Z8ftO-j9Zjlir/view?usp=drive_link",
+          "mode": "url"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTool",
+      "typeVersion": 3,
+      "position": [800, 720],
+      "id": "039fc76f-492e-497b-ac4b-58db0eed6ebc",
+      "name": "Download Menu"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5b40f553-15a0-459d-9594-096a5d3cced7",
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-720, 80],
+      "id": "454fa152-9ecc-46bf-8a4c-47450420814c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"output\": \"please provide your email and name\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [-496, 272],
+      "id": "7d3982c0-7019-4c2b-9e6d-94d96958c554",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [384, -384],
+      "id": "9ae19d30-1180-4ca6-89ff-9a6d6c3e40d8",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e7477f13-656d-4e5c-a0ad-86d200ca96c8",
+              "name": "chatInput",
+              "value": "={{ $json.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "fabab0bc-cf16-4c41-b154-966aa921b1d7",
+              "name": "Email",
+              "value": "={{ $json.metadata.userName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-416, 64],
+      "id": "5f3e7e5c-9956-4dd1-8550-e39a6dc088b0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const originalData = $('When chat message received').item.json;\n\nif ($json.metadata && $json.metadata.isUserInfo) {\n  return {\n    isRegistration: true,\n    cleanedMessage: '',\n    userInfo: {\n      name: $json.metadata?.userName || '',\n      email: $json.metadata?.userId || ''\n    },\n    originalData: $json\n  };\n}\n\nconst fullName = originalData.metadata?.userName || '';\nconst email    = originalData.metadata?.userId   || '';\n\nreturn {\n  isRegistration: false,\n  cleanedMessage: $json.chatInput || $json.message || '',\n  userInfo: {\n    name:  fullName,\n    email: email\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-208, 64],
+      "id": "7a39cc58-f357-4443-afbf-ca2ae70eb65e",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zoho-lead-upsert",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-624, 960],
+      "id": "7c2a34d0-c096-4416-bc37-aa786ae0b650",
+      "name": "Receive Lead from Widget",
+      "webhookId": "zoho-lead-upsert-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"status\": \"received\", \"message\": \"Lead captured successfully\" }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [-384, 800],
+      "id": "8e9ee3ea-66cb-4cea-accd-7b2ad8f70e8c",
+      "name": "Respond 200 Immediately"
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "search",
+        "searchBy": "email",
+        "email": "={{ $json.body.email }}"
+      },
+      "type": "n8n-nodes-base.zohoCrm",
+      "typeVersion": 1,
+      "position": [-384, 1072],
+      "id": "c20dd826-fb3c-45e4-90bc-89f76ee467df",
+      "name": "Search Contact by Email",
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "PBAWoHewIc6I4NMm",
+          "name": "Zoho account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-contact-exists",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-112, 1072],
+      "id": "d723a725-26b8-43a8-acfa-027e03c65ebf",
+      "name": "Contact Exists?"
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "update",
+        "contactId": "={{ $json.id }}",
+        "updateFields": {
+          "Email": "={{ $('Receive Lead from Widget').item.json.body.email }}",
+          "First_Name": "={{ $('Receive Lead from Widget').item.json.body.firstName }}",
+          "Last_Name": "={{ $('Receive Lead from Widget').item.json.body.lastName }}",
+          "Lead_Source": "ChatAgent Widget",
+          "Client_Site": "={{ $('Receive Lead from Widget').item.json.body.clientSite }}"
+        }
+      },
+      "type": "n8n-nodes-base.zohoCrm",
+      "typeVersion": 1,
+      "position": [144, 912],
+      "id": "31168e3a-7976-430f-a5c2-a667a0db1073",
+      "name": "Update Existing Contact",
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "PBAWoHewIc6I4NMm",
+          "name": "Zoho account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "lastName": "={{ $('Receive Lead from Widget').item.json.body.lastName }}",
+        "additionalFields": {
+          "Email": "={{ $('Receive Lead from Widget').item.json.body.email }}",
+          "First_Name": "={{ $('Receive Lead from Widget').item.json.body.firstName }}",
+          "Lead_Source": "ChatAgent Widget",
+          "Client_Site": "={{ $('Receive Lead from Widget').item.json.body.clientSite }}"
+        }
+      },
+      "type": "n8n-nodes-base.zohoCrm",
+      "typeVersion": 1,
+      "position": [144, 1232],
+      "id": "8e43e1e5-98c5-4e57-8bc7-3ef084f873cb",
+      "name": "Create New Contact",
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "PBAWoHewIc6I4NMm",
+          "name": "Zoho account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Upload your file here": {
+      "main": [
+        [
+          {
+            "node": "Insert Data to Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert Data to Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Data Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert Data to Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Query Data Tool",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reranker Cohere": {
+      "ai_reranker": [
+        [
+          {
+            "node": "Query Data Tool",
+            "type": "ai_reranker",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "store-memory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get-memory": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send-email": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Menu": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive Lead from Widget": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 Immediately",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Contact by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Contact by Email": {
+      "main": [
+        [
+          {
+            "node": "Contact Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Exists?": {
+      "main": [
+        [
+          {
+            "node": "Update Existing Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create New Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "a68c98921a7f16732a05d4452e98be3d845f93a8568d3af052be5ee1aa88310b"
+  }
+}
