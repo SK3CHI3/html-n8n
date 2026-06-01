@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Widget</title>
+    <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+
+        .chat-launcher {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #854fff, #6b3fd4);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(133,79,255,0.45);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .chat-launcher:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 28px rgba(133,79,255,0.6);
+        }
+        .chat-launcher.hidden { display: none; }
+
+        .chat-prechat-card {
+            display: none;
+            position: fixed;
+            bottom: 90px;
+            right: 24px;
+            width: 360px;
+            max-width: calc(100vw - 48px);
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+            padding: 24px;
+            z-index: 100001;
+            animation: popUp 0.25s ease-out;
+        }
+        .chat-prechat-card.show { display: block; }
+
+        @keyframes popUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 18px;
+        }
+        .card-header h2 {
+            font-size: 17px;
+            color: #222;
+            font-weight: 700;
+        }
+        .card-header p {
+            font-size: 12px;
+            color: #888;
+            margin-top: 3px;
+        }
+        .card-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 22px;
+            line-height: 1;
+            padding: 0;
+            margin-left: 8px;
+        }
+        .card-close:hover { color: #333; }
+
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 12px;
+        }
+        .field-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #444;
+        }
+        .field-group input {
+            padding: 10px 12px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #fafafa;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .field-group input:focus {
+            outline: none;
+            border-color: #854fff;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(133,79,255,0.12);
+        }
+        .field-group input.error { border-color: #e53e3e; background: #fff5f5; }
+        .field-group .err-msg {
+            font-size: 11px;
+            color: #e53e3e;
+            display: none;
+        }
+        .field-group .err-msg.show { display: block; }
+
+        .btn-start {
+            width: 100%;
+            padding: 11px;
+            background: linear-gradient(135deg, #854fff, #6b3fd4);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: opacity 0.2s;
+        }
+        .btn-start:hover   { opacity: 0.9; }
+        .btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .api-error {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            color: #c53030;
+            border-radius: 6px;
+            padding: 9px 12px;
+            font-size: 12px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .api-error.show { display: block; }
+
+        .loading-state {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 24px 0;
+        }
+        .loading-state.show { display: flex; }
+        .spinner {
+            width: 22px; height: 22px;
+            border: 3px solid #ede9fe;
+            border-top: 3px solid #854fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .loading-state p { font-size: 13px; color: #666; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 480px) {
+            .chat-prechat-card { right: 12px; left: 12px; width: auto; bottom: 80px; }
+            .chat-launcher { right: 12px; bottom: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<button class="chat-launcher" id="chatLauncher">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+    </svg>
+    Need Help?
+</button>
+
+<div class="chat-prechat-card" id="preChatCard">
+    <div class="card-header">
+        <div>
+            <h2>Hi 👋 How can we help?</h2>
+            <p>Fill in your details to start chatting</p>
+        </div>
+        <button class="card-close" id="cardClose">&times;</button>
+    </div>
+
+    <div class="api-error" id="apiError"></div>
+
+    <form id="preChatForm">
+        <div class="field-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" placeholder="John" autocomplete="given-name">
+            <span class="err-msg"></span>
+        </div>
+        <div class="field-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" placeholder="Doe" autocomplete="family-name">
+            <span class="err-msg"></span>
+        </div>
+        <div class="field-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="john@example.com" autocomplete="email">
+            <span class="err-msg"></span>
+        </div>
+        <button type="submit" class="btn-start" id="submitBtn">Start Chat →</button>
+    </form>
+
+    <div class="loading-state" id="loadingState">
+        <div class="spinner"></div>
+        <p>Connecting you...</p>
+    </div>
+</div>
+
+<div id="chat-widget-root"></div>
+
+<script>
+    window.ChatWidgetConfig = {
+        webhook: {
+            url: 'https://n8n.customcx.com/webhook/4091fa09-fb9a-4039-9411-7104d213f601/chat',
+            route: 'general'
+        },
+        leadWebhook: {
+            url: 'https://n8n.customcx.com/webhook/zoho-lead-upsert'
+        },
+        branding: {
+            logo: 'https://customcx.com/favicon.ico',
+            name: 'CustomCX Hotel',
+            welcomeText: 'Hi 👋, how can we help?',
+            responseTimeText: 'We typically respond right away'
+        },
+        style: {
+            primaryColor: '#854fff',
+            secondaryColor: '#6b3fd4',
+            position: 'right',
+            backgroundColor: '#ffffff',
+            fontColor: '#333333'
+        }
+    };
+
+    const launcher  = document.getElementById('chatLauncher');
+    const card      = document.getElementById('preChatCard');
+    const cardClose = document.getElementById('cardClose');
+    const form      = document.getElementById('preChatForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const apiError  = document.getElementById('apiError');
+    const loading   = document.getElementById('loadingState');
+    let chatReady   = false;
+
+    launcher.addEventListener('click', () => card.classList.toggle('show'));
+    cardClose.addEventListener('click', () => card.classList.remove('show'));
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        apiError.classList.remove('show');
+        if (!validate()) return;
+
+        const firstName = document.getElementById('firstName').value.trim();
+        const lastName  = document.getElementById('lastName').value.trim();
+        const email     = document.getElementById('email').value.trim();
+        const fullName  = firstName + ' ' + lastName;
+
+        form.style.display = 'none';
+        loading.classList.add('show');
+        submitBtn.disabled = true;
+
+        try {
+            const res = await fetch(window.ChatWidgetConfig.leadWebhook.url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    firstName,
+                    lastName,
+                    email,
+                    clientSite: window.location.hostname
+                })
+            });
+
+            if (!res.ok) throw new Error('Server error');
+
+            setTimeout(() => {
+                card.classList.remove('show');
+                launcher.classList.add('hidden');
+                loading.classList.remove('show');
+                form.style.display = 'block';
+                submitBtn.disabled = false;
+                form.reset();
+
+                if (!chatReady) {
+                    chatReady = true;
+                    window.ChatWidgetConfig.metadata = {
+                        userId:   email,
+                        userName: fullName
+                    };
+
+                    const s = document.createElement('script');
+                    s.src = 'widget/widget-hosted.js';
+                    s.async = true;
+                    s.onload = () => {
+                        if (window.ChatWidget && typeof window.ChatWidget.init === 'function') {
+                            window.ChatWidget.init(window.ChatWidgetConfig);
+                        }
+                    };
+                    document.body.appendChild(s);
+                }
+            }, 800);
+
+        } catch (err) {
+            console.error(err);
+            apiError.textContent = 'Something went wrong. Please try again.';
+            apiError.classList.add('show');
+            form.style.display = 'block';
+            loading.classList.remove('show');
+            submitBtn.disabled = false;
+        }
+    });
+
+    function validate() {
+        let ok = true;
+        [
+            { id: 'firstName', msg: 'First name is required' },
+            { id: 'lastName',  msg: 'Last name is required'  },
+            { id: 'email',     msg: 'Email is required'      }
+        ].forEach(f => {
+            const input = document.getElementById(f.id);
+            const err   = input.closest('.field-group').querySelector('.err-msg');
+            input.classList.remove('error');
+            err.classList.remove('show');
+            if (!input.value.trim()) {
+                input.classList.add('error');
+                err.textContent = f.msg;
+                err.classList.add('show');
+                ok = false;
+            } else if (f.id === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim())) {
+                input.classList.add('error');
+                err.textContent = 'Please enter a valid email';
+                err.classList.add('show');
+                ok = false;
+            }
+        });
+        return ok;
+    }
+</script>
+
+</body>
+</html>
