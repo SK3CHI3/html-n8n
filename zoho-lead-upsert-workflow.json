@@ -1,0 +1,182 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zoho-lead-upsert",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-624, 960],
+      "id": "7c2a34d0-c096-4416-bc37-aa786ae0b650",
+      "name": "Receive Lead from Widget",
+      "webhookId": "zoho-lead-upsert-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"received\", \"message\": \"Lead captured successfully\"}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [-384, 800],
+      "id": "8e9ee3ea-66cb-4cea-accd-7b2ad8f70e8c",
+      "name": "Respond 200 Immediately"
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "search",
+        "email": "={{ $json.body.email }}"
+      },
+      "type": "n8n-nodes-base.zohoCrm",
+      "typeVersion": 1,
+      "position": [-384, 1072],
+      "id": "c20dd826-fb3c-45e4-90bc-89f76ee467df",
+      "name": "Search Contact by Email",
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "PBAWoHewIc6I4NMm",
+          "name": "Zoho account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "check-contact-exists",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-112, 1072],
+      "id": "d723a725-26b8-43a8-acfa-027e03c65ebf",
+      "name": "Contact Exists?"
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "update",
+        "contactId": "={{ $json.id }}",
+        "updateFields": {
+          "Email": "={{ $('Receive Lead from Widget').item.json.body.email }}",
+          "First_Name": "={{ $('Receive Lead from Widget').item.json.body.firstName }}",
+          "Last_Name": "={{ $('Receive Lead from Widget').item.json.body.lastName }}",
+          "Lead_Source": "ChatAgent Widget",
+          "Client_Site": "={{ $('Receive Lead from Widget').item.json.body.clientSite }}"
+        }
+      },
+      "type": "n8n-nodes-base.zohoCrm",
+      "typeVersion": 1,
+      "position": [144, 912],
+      "id": "31168e3a-7976-430f-a5c2-a667a0db1073",
+      "name": "Update Existing Contact",
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "PBAWoHewIc6I4NMm",
+          "name": "Zoho account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "lastName": "={{ $('Receive Lead from Widget').item.json.body.lastName }}",
+        "additionalFields": {
+          "Email": "={{ $('Receive Lead from Widget').item.json.body.email }}",
+          "First_Name": "={{ $('Receive Lead from Widget').item.json.body.firstName }}",
+          "Lead_Source": "ChatAgent Widget",
+          "Client_Site": "={{ $('Receive Lead from Widget').item.json.body.clientSite }}"
+        }
+      },
+      "type": "n8n-nodes-base.zohoCrm",
+      "typeVersion": 1,
+      "position": [144, 1232],
+      "id": "8e43e1e5-98c5-4e57-8bc7-3ef084f873cb",
+      "name": "Create New Contact",
+      "credentials": {
+        "zohoOAuth2Api": {
+          "id": "PBAWoHewIc6I4NMm",
+          "name": "Zoho account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Receive Lead from Widget": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 Immediately",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Contact by Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Contact by Email": {
+      "main": [
+        [
+          {
+            "node": "Contact Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Exists?": {
+      "main": [
+        [
+          {
+            "node": "Update Existing Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create New Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a68c98921a7f16732a05d4452e98be3d845f93a8568d3af052be5ee1aa88310b"
+  }
+}
