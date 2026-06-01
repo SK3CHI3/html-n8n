@@ -5,6 +5,7 @@
 
     const defaultSettings = {
         webhook: { url: '', route: '' },
+        leadWebhook: { url: '' },
         branding: {
             logo: '',
             name: 'Chat',
@@ -118,14 +119,81 @@
                 text-align: center;
                 width: 100%;
                 max-width: 320px;
+                display: block;
             }
-            .chat-assist-widget .chat-welcome-title {
-                font-size: 22px;
-                font-weight: 700;
+            .chat-assist-widget .chat-welcome.hidden { display: none; }
+            .chat-assist-widget .user-registration {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                padding: 24px;
+                text-align: center;
+                width: 100%;
+                max-width: 320px;
+                display: none;
+            }
+            .chat-assist-widget .user-registration.active { display: block; }
+            .chat-assist-widget .registration-title {
+                font-size: 18px;
+                font-weight: 600;
                 color: var(--chat-color-text);
-                margin-bottom: 24px;
-                line-height: 1.3;
+                margin-bottom: 16px;
             }
+            .chat-assist-widget .registration-form {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 16px;
+            }
+            .chat-assist-widget .form-field {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                text-align: left;
+            }
+            .chat-assist-widget .form-label {
+                font-size: 13px;
+                font-weight: 500;
+                color: var(--chat-color-text);
+            }
+            .chat-assist-widget .form-input {
+                padding: 10px 12px;
+                border: 1.5px solid var(--chat-color-border);
+                border-radius: var(--chat-radius-md);
+                font-family: inherit;
+                font-size: 14px;
+                background: #fafafa;
+                transition: border-color 0.2s, box-shadow 0.2s;
+            }
+            .chat-assist-widget .form-input:focus {
+                outline: none;
+                border-color: var(--chat-color-primary);
+                background: white;
+                box-shadow: 0 0 0 3px rgba(133,79,255,0.12);
+            }
+            .chat-assist-widget .form-input.error { border-color: #ef4444; background: #fff5f5; }
+            .chat-assist-widget .form-error {
+                font-size: 11px;
+                color: #ef4444;
+                margin-top: 2px;
+                display: none;
+            }
+            .chat-assist-widget .form-error.show { display: block; }
+            .chat-assist-widget .submit-registration {
+                width: 100%;
+                padding: 12px;
+                background: linear-gradient(135deg, var(--chat-color-primary) 0%, var(--chat-color-secondary) 100%);
+                color: white;
+                border: none;
+                border-radius: var(--chat-radius-md);
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+                font-family: inherit;
+            }
+            .chat-assist-widget .submit-registration:hover { opacity: 0.9; }
+            .chat-assist-widget .submit-registration:disabled { opacity: 0.5; cursor: not-allowed; }
             .chat-assist-widget .chat-start-btn {
                 display: flex;
                 align-items: center;
@@ -302,6 +370,22 @@
                 </button>
                 <p class="chat-response-time"></p>
             </div>
+            <div class="user-registration">
+                <h2 class="registration-title">Please enter your details to start chatting</h2>
+                <form class="registration-form">
+                    <div class="form-field">
+                        <label class="form-label" for="chat-user-name">Name</label>
+                        <input type="text" id="chat-user-name" class="form-input" placeholder="Your name" required>
+                        <div class="form-error" id="name-error"></div>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="chat-user-email">Email</label>
+                        <input type="email" id="chat-user-email" class="form-input" placeholder="Your email" required>
+                        <div class="form-error" id="email-error"></div>
+                    </div>
+                    <button type="submit" class="submit-registration">Continue to Chat</button>
+                </form>
+            </div>
             <div class="chat-body">
                 <div class="chat-messages"></div>
                 <div class="chat-controls">
@@ -335,6 +419,14 @@
         const submitBtn = widgetRoot.querySelector('.chat-submit');
         const footerLink = widgetRoot.querySelector('.chat-footer-link');
         const closeBtn = widgetRoot.querySelector('.chat-close-btn');
+        const userRegistration = widgetRoot.querySelector('.user-registration');
+        const registrationForm = widgetRoot.querySelector('.registration-form');
+        const welcomeSection = widgetRoot.querySelector('.chat-welcome');
+        const nameInput = widgetRoot.querySelector('#chat-user-name');
+        const emailInput = widgetRoot.querySelector('#chat-user-email');
+        const nameError = widgetRoot.querySelector('#name-error');
+        const emailError = widgetRoot.querySelector('#email-error');
+        const submitRegistrationBtn = widgetRoot.querySelector('.submit-registration');
 
         if (settings.branding.logo) {
             headerLogo.src = settings.branding.logo;
@@ -353,14 +445,79 @@
             launchBtn.classList.add('left-side');
         }
 
-        launchBtn.addEventListener('click', () => chatWindow.classList.toggle('visible'));
-        closeBtn.addEventListener('click', () => chatWindow.classList.remove('visible'));
+        launchBtn.addEventListener('click', () => {
+            chatWindow.classList.add('visible');
+        });
+        closeBtn.addEventListener('click', () => {
+            chatWindow.classList.remove('visible');
+        });
 
-        startBtn.addEventListener('click', async () => {
-            widgetRoot.querySelector('.chat-welcome').style.display = 'none';
-            conversationId = crypto.randomUUID();
-            chatBody.classList.add('active');
-            await initChat();
+        startBtn.addEventListener('click', () => {
+            welcomeSection.classList.add('hidden');
+            userRegistration.classList.add('active');
+        });
+
+        registrationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            nameError.textContent = '';
+            emailError.textContent = '';
+            nameInput.classList.remove('error');
+            emailInput.classList.remove('error');
+            
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+            let isValid = true;
+            
+            if (!name) {
+                nameError.textContent = 'Please enter your name';
+                nameError.classList.add('show');
+                nameInput.classList.add('error');
+                isValid = false;
+            }
+            
+            if (!email) {
+                emailError.textContent = 'Please enter your email';
+                emailError.classList.add('show');
+                emailInput.classList.add('error');
+                isValid = false;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                emailError.textContent = 'Please enter a valid email';
+                emailError.classList.add('show');
+                emailInput.classList.add('error');
+                isValid = false;
+            }
+            
+            if (!isValid) return;
+            
+            userData = { name, email };
+            submitRegistrationBtn.disabled = true;
+            submitRegistrationBtn.textContent = 'Connecting...';
+            
+            try {
+                if (settings.leadWebhook?.url) {
+                    await fetch(settings.leadWebhook.url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            firstName: name.split(' ')[0] || name,
+                            lastName: name.split(' ').slice(1).join(' ') || '',
+                            email: email,
+                            clientSite: window.location.hostname
+                        })
+                    });
+                }
+                
+                userRegistration.classList.remove('active');
+                chatBody.classList.add('active');
+                conversationId = crypto.randomUUID();
+                await initChat();
+                
+            } catch (e) {
+                console.error(e);
+                submitRegistrationBtn.disabled = false;
+                submitRegistrationBtn.textContent = 'Continue to Chat';
+            }
         });
 
         submitBtn.addEventListener('click', () => {
