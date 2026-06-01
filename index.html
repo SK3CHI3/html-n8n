@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CustomCX Hotel</title>
-    <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
     </style>
@@ -34,6 +33,11 @@
             }
         };
     </script>
-    <script src="widget/widget-hosted.js" async></script>
+    <script src="widget/widget-hosted.js"></script>
+    <script>
+        if (window.ChatWidget && typeof window.ChatWidget.init === 'function') {
+            window.ChatWidget.init(window.ChatWidgetConfig);
+        }
+    </script>
 </body>
 </html>
