@@ -33,11 +33,6 @@
             transform: scale(1.05);
             box-shadow: 0 6px 28px rgba(133,79,255,0.6);
         }
-        .chat-launcher svg {
-            width: 22px;
-            height: 22px;
-            fill: white;
-        }
         .chat-launcher.hidden { display: none; }
 
         /* ── Pre-Chat Form Card ── */
@@ -62,7 +57,6 @@
             to   { transform: translateY(0);    opacity: 1; }
         }
 
-        /* Card header */
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -91,7 +85,6 @@
         }
         .card-close:hover { color: #333; }
 
-        /* Fields */
         .field-group {
             display: flex;
             flex-direction: column;
@@ -126,7 +119,6 @@
         }
         .field-group .err-msg.show { display: block; }
 
-        /* Submit button */
         .btn-start {
             width: 100%;
             padding: 11px;
@@ -143,7 +135,6 @@
         .btn-start:hover   { opacity: 0.9; }
         .btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* Error banner */
         .api-error {
             background: #fff5f5;
             border: 1px solid #fed7d7;
@@ -156,7 +147,6 @@
         }
         .api-error.show { display: block; }
 
-        /* Loading */
         .loading-state {
             display: none;
             flex-direction: column;
@@ -176,26 +166,22 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         @media (max-width: 480px) {
-            .chat-prechat-card {
-                right: 12px; left: 12px;
-                width: auto;
-                bottom: 80px;
-            }
+            .chat-prechat-card { right: 12px; left: 12px; width: auto; bottom: 80px; }
             .chat-launcher { right: 12px; bottom: 12px; }
         }
     </style>
 </head>
 <body>
 
-<!-- ① Floating Button — always visible -->
+<!-- ① Always visible floating button -->
 <button class="chat-launcher" id="chatLauncher">
-    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
         <path d="M20 2H4C2.9 2 2 2.9 2 4v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
     </svg>
     Need Help?
 </button>
 
-<!-- ② Pre-Chat Form Card -->
+<!-- ② Pre-Chat Form -->
 <div class="chat-prechat-card" id="preChatCard">
     <div class="card-header">
         <div>
@@ -232,15 +218,14 @@
     </div>
 </div>
 
-<!-- ③ Chat widget mounts here after form -->
+<!-- ③ Chat widget mounts here -->
 <div id="chat-widget-root"></div>
 
 <script>
     window.ChatWidgetConfig = {
         webhook: {
             url: 'https://n8n.customcx.com/webhook/4091fa09-fb9a-4039-9411-7104d213f601/chat',
-            route: 'general',
-            zohoUrl: 'https://n8n.customcx.com/webhook/zoho-lead-upsert'
+            route: 'general'
         },
         branding: {
             logo: 'https://customcx.com/favicon.ico',
@@ -257,24 +242,20 @@
         }
     };
 
-    const launcher   = document.getElementById('chatLauncher');
-    const card       = document.getElementById('preChatCard');
-    const cardClose  = document.getElementById('cardClose');
-    const form       = document.getElementById('preChatForm');
-    const submitBtn  = document.getElementById('submitBtn');
-    const apiError   = document.getElementById('apiError');
-    const loading    = document.getElementById('loadingState');
-    let chatReady = false;
+    const launcher  = document.getElementById('chatLauncher');
+    const card      = document.getElementById('preChatCard');
+    const cardClose = document.getElementById('cardClose');
+    const form      = document.getElementById('preChatForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const apiError  = document.getElementById('apiError');
+    const loading   = document.getElementById('loadingState');
+    let chatReady   = false;
 
-    // Open form
-    launcher.addEventListener('click', () => {
-        card.classList.toggle('show');
-    });
-
-    // Close form
+    // Open / close form
+    launcher.addEventListener('click', () => card.classList.toggle('show'));
     cardClose.addEventListener('click', () => card.classList.remove('show'));
 
-    // Submit
+    // Submit form
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         apiError.classList.remove('show');
@@ -283,12 +264,15 @@
         const firstName = document.getElementById('firstName').value.trim();
         const lastName  = document.getElementById('lastName').value.trim();
         const email     = document.getElementById('email').value.trim();
+        const fullName  = firstName + ' ' + lastName;
 
+        // Show loading
         form.style.display = 'none';
         loading.classList.add('show');
         submitBtn.disabled = true;
 
         try {
+            // 1. Save lead to Zoho CRM
             const res = await fetch('https://n8n.customcx.com/webhook/zoho-lead-upsert', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -302,6 +286,7 @@
 
             if (!res.ok) throw new Error('Server error');
 
+            // 2. Close form, hide button, open chat
             setTimeout(() => {
                 card.classList.remove('show');
                 launcher.classList.add('hidden');
@@ -310,13 +295,21 @@
                 submitBtn.disabled = false;
                 form.reset();
 
+                // 3. Load chat widget with user's name + email so Betty knows who they are
                 if (!chatReady) {
                     chatReady = true;
+
+                    // Pass name and email into the chat widget metadata
+                    window.ChatWidgetConfig.metadata = {
+                        userId:   email,
+                        userName: fullName
+                    };
+
                     const s = document.createElement('script');
                     s.src = 'https://cdn.jsdelivr.net/gh/funtastic418/chat-widget@main/chat-widget.js';
                     s.async = true;
                     s.onload = () => {
-                        if (window.ChatWidget?.init) {
+                        if (window.ChatWidget && typeof window.ChatWidget.init === 'function') {
                             window.ChatWidget.init(window.ChatWidgetConfig);
                         }
                     };
@@ -325,6 +318,7 @@
             }, 800);
 
         } catch (err) {
+            console.error(err);
             apiError.textContent = 'Something went wrong. Please try again.';
             apiError.classList.add('show');
             form.style.display = 'block';
@@ -333,20 +327,18 @@
         }
     });
 
+    // Validation
     function validate() {
         let ok = true;
-        const fields = [
+        [
             { id: 'firstName', msg: 'First name is required' },
             { id: 'lastName',  msg: 'Last name is required'  },
             { id: 'email',     msg: 'Email is required'      }
-        ];
-
-        fields.forEach(f => {
+        ].forEach(f => {
             const input = document.getElementById(f.id);
             const err   = input.closest('.field-group').querySelector('.err-msg');
             input.classList.remove('error');
             err.classList.remove('show');
-
             if (!input.value.trim()) {
                 input.classList.add('error');
                 err.textContent = f.msg;
@@ -359,7 +351,6 @@
                 ok = false;
             }
         });
-
         return ok;
     }
 </script>
