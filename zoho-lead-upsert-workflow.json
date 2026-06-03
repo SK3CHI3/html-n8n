@@ -6,7 +6,8 @@
         "path": "zoho-lead-upsert",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "*"
+          "allowedOrigins": "*",
+          "allowedMethods": "GET, POST, OPTIONS"
         }
       },
       "type": "n8n-nodes-base.webhook",
@@ -18,10 +19,69 @@
     },
     {
       "parameters": {
+        "httpMethod": "OPTIONS",
+        "path": "zoho-lead-upsert",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-880, 1400],
+      "id": "lead-webhook-options",
+      "name": "Lead Webhook OPTIONS",
+      "webhookId": "zoho-lead-upsert-options"
+    },
+    {
+      "parameters": {
         "respondWith": "json",
         "responseBody": "{\"status\": \"received\"}",
         "options": {
-          "responseCode": 200
+          "responseCode": 200,
+          "responseHeaders": {
+            "headers": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [-640, 1400],
+      "id": "respond-options",
+      "name": "Respond OPTIONS"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\": \"received\"}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "headers": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization"
+              }
+            ]
+          }
         }
       },
       "type": "n8n-nodes-base.respondToWebhook",
@@ -163,7 +223,24 @@
     },
     {
       "parameters": {
-        "options": {}
+        "options": {
+          "responseHeaders": {
+            "headers": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization"
+              }
+            ]
+          }
+        }
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
@@ -178,6 +255,13 @@
         [
           { "node": "Respond Lead Received", "type": "main", "index": 0 },
           { "node": "Search Contact", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Lead Webhook OPTIONS": {
+      "main": [
+        [
+          { "node": "Respond OPTIONS", "type": "main", "index": 0 }
         ]
       ]
     },

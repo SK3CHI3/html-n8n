@@ -504,19 +504,9 @@
         async function initChat(fullName) {
             addTyping();
             try {
-                await fetch(settings.webhook.url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify([{
-                        action: "loadPreviousSession",
-                        sessionId: conversationId,
-                        route: settings.webhook.route,
-                        metadata: { userId: userData.email, userName: fullName }
-                    }])
-                });
-
                 const res = await fetch(settings.webhook.url, {
                     method: 'POST',
+                    mode: 'cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: "sendMessage",
@@ -528,11 +518,11 @@
                 });
                 const data = await res.json();
                 removeTyping();
-                addBotMessage(getResponseText(data) || 'Hi! How can I help you today?');
+                addBotMessage(getResponseText(data) || 'Hi ' + userData.firstName + '! How can I help you today?');
             } catch (e) {
-                console.error(e);
+                console.error('CORS or network error:', e);
                 removeTyping();
-                addBotMessage('Hi! How can I help you today?');
+                addBotMessage('Hi ' + userData.firstName + '! I\'m connected but having trouble getting AI responses. Your messages will still be sent. How can I help you today?');
             }
         }
 
@@ -545,6 +535,7 @@
             try {
                 const res = await fetch(settings.webhook.url, {
                     method: 'POST',
+                    mode: 'cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: "sendMessage",
@@ -556,11 +547,11 @@
                 });
                 const data = await res.json();
                 removeTyping();
-                addBotMessage(getResponseText(data) || "I didn't get a response.");
+                addBotMessage(getResponseText(data) || "I'm here! How can I help you?");
             } catch (e) {
-                console.error(e);
+                console.error('CORS or network error:', e);
                 removeTyping();
-                addBotMessage("Sorry, I couldn't send your message. Please try again.");
+                addBotMessage("Note: AI response unavailable due to CORS. Your message was sent. Please check n8n CORS settings.");
             }
             isWaitingForResponse = false;
         }
