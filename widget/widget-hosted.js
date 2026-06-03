@@ -25,7 +25,7 @@
     let settings = {};
     let conversationId = '';
     let isWaitingForResponse = false;
-    let userData = { name: '', email: '' };
+    let userData = { firstName: '', lastName: '', email: '' };
 
     function createWidget() {
         const widgetRoot = document.createElement('div');
@@ -374,9 +374,14 @@
                 <h2 class="registration-title">Please enter your details to start chatting</h2>
                 <form class="registration-form">
                     <div class="form-field">
-                        <label class="form-label" for="chat-user-name">Name</label>
-                        <input type="text" id="chat-user-name" class="form-input" placeholder="Your name" required>
-                        <div class="form-error" id="name-error"></div>
+                        <label class="form-label" for="chat-user-firstname">First Name</label>
+                        <input type="text" id="chat-user-firstname" class="form-input" placeholder="Your first name" required>
+                        <div class="form-error" id="firstname-error"></div>
+                    </div>
+                    <div class="form-field">
+                        <label class="form-label" for="chat-user-lastname">Last Name</label>
+                        <input type="text" id="chat-user-lastname" class="form-input" placeholder="Your last name" required>
+                        <div class="form-error" id="lastname-error"></div>
                     </div>
                     <div class="form-field">
                         <label class="form-label" for="chat-user-email">Email</label>
@@ -422,9 +427,11 @@
         const userRegistration = widgetRoot.querySelector('.user-registration');
         const registrationForm = widgetRoot.querySelector('.registration-form');
         const welcomeSection = widgetRoot.querySelector('.chat-welcome');
-        const nameInput = widgetRoot.querySelector('#chat-user-name');
+        const nameInput = widgetRoot.querySelector('#chat-user-firstname');
+        const lastNameInput = widgetRoot.querySelector('#chat-user-lastname');
         const emailInput = widgetRoot.querySelector('#chat-user-email');
-        const nameError = widgetRoot.querySelector('#name-error');
+        const nameError = widgetRoot.querySelector('#firstname-error');
+        const lastNameError = widgetRoot.querySelector('#lastname-error');
         const emailError = widgetRoot.querySelector('#email-error');
         const submitRegistrationBtn = widgetRoot.querySelector('.submit-registration');
 
@@ -460,19 +467,30 @@
         registrationForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            nameError.textContent = '';
+            firstNameError.textContent = '';
+            lastNameError.textContent = '';
             emailError.textContent = '';
-            nameInput.classList.remove('error');
+            firstNameInput.classList.remove('error');
+            lastNameInput.classList.remove('error');
             emailInput.classList.remove('error');
             
-            const name = nameInput.value.trim();
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
             const email = emailInput.value.trim();
+            const fullName = firstName + ' ' + lastName;
             let isValid = true;
             
-            if (!name) {
-                nameError.textContent = 'Please enter your name';
-                nameError.classList.add('show');
-                nameInput.classList.add('error');
+            if (!firstName) {
+                firstNameError.textContent = 'Please enter your first name';
+                firstNameError.classList.add('show');
+                firstNameInput.classList.add('error');
+                isValid = false;
+            }
+            
+            if (!lastName) {
+                lastNameError.textContent = 'Please enter your last name';
+                lastNameError.classList.add('show');
+                lastNameInput.classList.add('error');
                 isValid = false;
             }
             
@@ -490,7 +508,7 @@
             
             if (!isValid) return;
             
-            userData = { name, email };
+            userData = { firstName, lastName, email };
             submitRegistrationBtn.disabled = true;
             submitRegistrationBtn.textContent = 'Connecting...';
             
@@ -500,8 +518,8 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            firstName: name.split(' ')[0] || name,
-                            lastName: name.split(' ').slice(1).join(' ') || '',
+                            firstName: firstName,
+                            lastName: lastName,
                             email: email,
                             clientSite: window.location.hostname
                         })
@@ -511,7 +529,7 @@
                 userRegistration.classList.remove('active');
                 chatBody.classList.add('active');
                 conversationId = crypto.randomUUID();
-                await initChat();
+                await initChat(fullName);
                 
             } catch (e) {
                 console.error(e);
@@ -546,7 +564,7 @@
             textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
         });
 
-        async function initChat() {
+async function initChat(name) {
             addTyping();
             try {
                 await fetch(settings.webhook.url, {
@@ -556,8 +574,8 @@
                         action: "loadPreviousSession",
                         sessionId: conversationId,
                         route: settings.webhook.route,
-                        metadata: { userId: userData.email, userName: userData.name }
-                    }])
+                        metadata: { userId: userData.email, userName: name }
+                    }]
                 });
 
                 const res = await fetch(settings.webhook.url, {
@@ -567,8 +585,8 @@
                         action: "sendMessage",
                         sessionId: conversationId,
                         route: settings.webhook.route,
-                        chatInput: `Name: ${userData.name}\nEmail: ${userData.email}`,
-                        metadata: { userId: userData.email, userName: userData.name, isUserInfo: true }
+                        chatInput: `Name: ${name}\nEmail: ${userData.email}`,
+                        metadata: { userId: userData.email, userName: name, isUserInfo: true }
                     })
                 });
                 const data = await res.json();
@@ -586,6 +604,7 @@
             isWaitingForResponse = true;
             addUserMessage(text);
             addTyping();
+            const fullName = userData.firstName + ' ' + userData.lastName;
             try {
                 const res = await fetch(settings.webhook.url, {
                     method: 'POST',
@@ -595,7 +614,7 @@
                         sessionId: conversationId,
                         route: settings.webhook.route,
                         chatInput: text,
-                        metadata: { userId: userData.email, userName: userData.name }
+                        metadata: { userId: userData.email, userName: fullName }
                     })
                 });
                 const data = await res.json();
@@ -655,7 +674,13 @@
             settings.branding = { ...defaultSettings.branding, ...config.branding };
             settings.style = { ...defaultSettings.style, ...config.style };
             if (config.metadata) {
-                userData = { name: config.metadata.userName || '', email: config.metadata.userId || '' };
+                const fullName = config.metadata.userName || '';
+                const parts = fullName.split(' ');
+                userData = { 
+                    firstName: parts[0] || '', 
+                    lastName: parts.slice(1).join(' ') || '', 
+                    email: config.metadata.userId || '' 
+                };
             }
             createWidget();
         }
