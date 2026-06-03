@@ -360,7 +360,7 @@
             <div class="chat-header">
                 <img class="chat-header-logo" src="" alt="" style="display:none">
                 <span class="chat-header-title"></span>
-                <button class="chat-close-btn">×</button>
+                <button class="chat-close-btn">x</button>
             </div>
             <div class="chat-welcome">
                 <h2 class="chat-welcome-title"></h2>
@@ -427,10 +427,10 @@
         const userRegistration = widgetRoot.querySelector('.user-registration');
         const registrationForm = widgetRoot.querySelector('.registration-form');
         const welcomeSection = widgetRoot.querySelector('.chat-welcome');
-        const nameInput = widgetRoot.querySelector('#chat-user-firstname');
+        const firstNameInput = widgetRoot.querySelector('#chat-user-firstname');
         const lastNameInput = widgetRoot.querySelector('#chat-user-lastname');
         const emailInput = widgetRoot.querySelector('#chat-user-email');
-        const nameError = widgetRoot.querySelector('#firstname-error');
+        const firstNameError = widgetRoot.querySelector('#firstname-error');
         const lastNameError = widgetRoot.querySelector('#lastname-error');
         const emailError = widgetRoot.querySelector('#email-error');
         const submitRegistrationBtn = widgetRoot.querySelector('.submit-registration');
@@ -440,7 +440,7 @@
             headerLogo.style.display = 'block';
         }
         headerTitle.textContent = settings.branding.name || 'Chat';
-        welcomeTitle.textContent = settings.branding.welcomeText || 'Hi 👋';
+        welcomeTitle.textContent = settings.branding.welcomeText || 'Hi';
         responseTime.textContent = settings.branding.responseTimeText || '';
         footerLink.href = settings.branding.poweredBy?.link || 'https://n8n.io';
         footerLink.textContent = settings.branding.poweredBy?.text || 'Powered by n8n';
@@ -463,6 +463,107 @@
             welcomeSection.classList.add('hidden');
             userRegistration.classList.add('active');
         });
+
+        function getResponseText(data) {
+            if (!data) return '';
+            if (Array.isArray(data)) return data[0]?.output || data[0]?.text || data[0]?.message || '';
+            return data.output || data.text || data.message || '';
+        }
+
+        function addUserMessage(text) {
+            const m = document.createElement('div');
+            m.className = 'chat-bubble user-bubble';
+            m.textContent = text;
+            messagesContainer.appendChild(m);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addBotMessage(text) {
+            const m = document.createElement('div');
+            m.className = 'chat-bubble bot-bubble';
+            m.innerHTML = text.replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" class="chat-link">$1</a>');
+            messagesContainer.appendChild(m);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addTyping() {
+            if (!messagesContainer.querySelector('.typing-indicator')) {
+                const t = document.createElement('div');
+                t.className = 'typing-indicator';
+                t.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+                messagesContainer.appendChild(t);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }
+
+        function removeTyping() {
+            const t = messagesContainer.querySelector('.typing-indicator');
+            if (t) t.remove();
+        }
+
+        async function initChat(fullName) {
+            addTyping();
+            try {
+                await fetch(settings.webhook.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify([{
+                        action: "loadPreviousSession",
+                        sessionId: conversationId,
+                        route: settings.webhook.route,
+                        metadata: { userId: userData.email, userName: fullName }
+                    }])
+                });
+
+                const res = await fetch(settings.webhook.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: "sendMessage",
+                        sessionId: conversationId,
+                        route: settings.webhook.route,
+                        chatInput: "Name: " + fullName + "\nEmail: " + userData.email,
+                        metadata: { userId: userData.email, userName: fullName, isUserInfo: true }
+                    })
+                });
+                const data = await res.json();
+                removeTyping();
+                addBotMessage(getResponseText(data) || 'Hi! How can I help you today?');
+            } catch (e) {
+                console.error(e);
+                removeTyping();
+                addBotMessage('Hi! How can I help you today?');
+            }
+        }
+
+        async function sendMessage(text) {
+            if (isWaitingForResponse) return;
+            isWaitingForResponse = true;
+            addUserMessage(text);
+            addTyping();
+            const fullName = userData.firstName + ' ' + userData.lastName;
+            try {
+                const res = await fetch(settings.webhook.url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: "sendMessage",
+                        sessionId: conversationId,
+                        route: settings.webhook.route,
+                        chatInput: text,
+                        metadata: { userId: userData.email, userName: fullName }
+                    })
+                });
+                const data = await res.json();
+                removeTyping();
+                addBotMessage(getResponseText(data) || "I didn't get a response.");
+            } catch (e) {
+                console.error(e);
+                removeTyping();
+                addBotMessage("Sorry, I couldn't send your message. Please try again.");
+            }
+            isWaitingForResponse = false;
+        }
 
         registrationForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -563,109 +664,6 @@
             textarea.style.height = 'auto';
             textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
         });
-
-async function initChat(name) {
-            addTyping();
-            try {
-                await fetch(settings.webhook.url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify([{
-                        action: "loadPreviousSession",
-                        sessionId: conversationId,
-                        route: settings.webhook.route,
-                        metadata: { userId: userData.email, userName: name }
-                    }]
-                });
-
-                const res = await fetch(settings.webhook.url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: "sendMessage",
-                        sessionId: conversationId,
-                        route: settings.webhook.route,
-                        chatInput: `Name: ${name}\nEmail: ${userData.email}`,
-                        metadata: { userId: userData.email, userName: name, isUserInfo: true }
-                    })
-                });
-                const data = await res.json();
-                removeTyping();
-                addBotMessage(getResponseText(data) || 'Hi! How can I help you today?');
-            } catch (e) {
-                console.error(e);
-                removeTyping();
-                addBotMessage('Hi! How can I help you today?');
-            }
-        }
-
-        async function sendMessage(text) {
-            if (isWaitingForResponse) return;
-            isWaitingForResponse = true;
-            addUserMessage(text);
-            addTyping();
-            const fullName = userData.firstName + ' ' + userData.lastName;
-            try {
-                const res = await fetch(settings.webhook.url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: "sendMessage",
-                        sessionId: conversationId,
-                        route: settings.webhook.route,
-                        chatInput: text,
-                        metadata: { userId: userData.email, userName: fullName }
-                    })
-                });
-                const data = await res.json();
-                removeTyping();
-                addBotMessage(getResponseText(data) || "I didn't get a response.");
-            } catch (e) {
-                console.error(e);
-                removeTyping();
-                addBotMessage("Sorry, I couldn't send your message. Please try again.");
-            }
-            isWaitingForResponse = false;
-        }
-
-        function getResponseText(data) {
-            if (!data) return '';
-            if (Array.isArray(data)) return data[0]?.output || data[0]?.text || data[0]?.message || '';
-            return data.output || data.text || data.message || '';
-        }
-
-        function addUserMessage(text) {
-            const m = document.createElement('div');
-            m.className = 'chat-bubble user-bubble';
-            m.textContent = text;
-            messagesContainer.appendChild(m);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        function addBotMessage(text) {
-            const m = document.createElement('div');
-            m.className = 'chat-bubble bot-bubble';
-            m.innerHTML = text.replace(/\n/g, '<br>').replace(linkifyPattern, '<a href="$1" target="_blank" class="chat-link">$1</a>');
-            messagesContainer.appendChild(m);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        const linkifyPattern = /(https?:\/\/[^\s<]+)/g;
-
-        function addTyping() {
-            if (!messagesContainer.querySelector('.typing-indicator')) {
-                const t = document.createElement('div');
-                t.className = 'typing-indicator';
-                t.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
-                messagesContainer.appendChild(t);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-        }
-
-        function removeTyping() {
-            const t = messagesContainer.querySelector('.typing-indicator');
-            if (t) t.remove();
-        }
     }
 
     window.ChatWidget = {
